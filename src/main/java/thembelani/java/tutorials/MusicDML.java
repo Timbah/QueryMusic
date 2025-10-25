@@ -13,12 +13,7 @@ public class MusicDML {
 //            throw new RuntimeException(e);
 //        }
 
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/music",
-                System.getenv("MYSQL_USER"),
-                System.getenv("MYSQL_PASS"));
-             Statement statement = connection.createStatement();
-        ) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/music", System.getenv("MYSQL_USER"), System.getenv("MYSQL_PASS")); Statement statement = connection.createStatement();) {
 //            String artist = "Elf";
 //            String query = "SELECT * FROM artists WHERE artist_name='%s'"
 //                    .formatted(artist);
@@ -31,12 +26,16 @@ public class MusicDML {
 
             String tableName = "music.artists";
             String columnName = "artist_name";
-            String columnValue = "Bob Dylan";
+            String columnValue = "Elf";
 
             if (!executeSelect(statement, tableName, columnName, columnValue)) {
                 System.out.println("Maybe we should add this record");
-                insertRecord(statement, tableName, new String[]{columnName},
-                        new String[]{columnValue});
+                insertRecord(statement, tableName, new String[]{columnName}, new String[]{columnValue});
+            } else {
+//                deleteRecord(statement, tableName, columnName, columnValue);
+                updateRecord(statement,tableName,columnName,
+                        columnValue,columnName,
+                        columnValue.toUpperCase());
             }
 
         } catch (SQLException e) {
@@ -68,11 +67,8 @@ public class MusicDML {
         return foundData;
     }
 
-    private static boolean executeSelect(Statement statement, String table,
-                                         String columnName, String columnValue)
-            throws SQLException {
-        String query = "SELECT * FROM %s WHERE %s = '%s'"
-                .formatted(table, columnName, columnValue);
+    private static boolean executeSelect(Statement statement, String table, String columnName, String columnValue) throws SQLException {
+        String query = "SELECT * FROM %s WHERE %s = '%s'".formatted(table, columnName, columnValue);
 
         var rs = statement.executeQuery(query);
 
@@ -101,5 +97,43 @@ public class MusicDML {
 
         return recordsInserted > 0;
     }
+
+    private static boolean deleteRecord(Statement statement, String table,
+                                        String columnName, String columnValue) throws SQLException {
+
+        String query = "DELETE FROM %s WHERE %s = '%s'".
+                formatted(table, columnName, columnValue);
+        System.out.println(query);
+
+        statement.execute(query);
+        int recordsDeleted = statement.getUpdateCount();
+
+        if (recordsDeleted > 0) {
+            executeSelect(statement, table, columnName, columnValue);
+        }
+
+        return recordsDeleted > 0;
+    }
+
+    private static boolean updateRecord(Statement statement, String table,
+                                        String matchedColumn, String matchedValue,
+                                        String updatedColumn, String updatedValue) throws SQLException {
+
+        String query = "UPDATE %s SET %s = '%s' WHERE %s = '%s'".
+                formatted(table, updatedColumn, updatedValue, matchedColumn, matchedValue);
+
+        System.out.println(query);
+
+        statement.execute(query);
+        int updatedRecords = statement.getUpdateCount();
+
+        if (updatedRecords > 0) {
+            executeSelect(statement, table, updatedColumn, updatedValue);
+        }
+
+        return updatedRecords > 0;
+    }
+
+
 }
 
